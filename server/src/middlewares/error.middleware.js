@@ -13,6 +13,10 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ message: `Invalid id: ${err.value}` });
   }
 
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ message: "Uploaded image must be 4 MB or smaller" });
+  }
+
   res.status(500).json({ message: err.message || "Server error" });
 };
 
