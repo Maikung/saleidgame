@@ -1,0 +1,10 @@
+const express = require("express");
+const controller = require("../controllers/freefire.controller");
+const { protect, allowRoles } = require("../middlewares/auth.middleware");
+const router = express.Router();
+router.get("/", controller.getAccounts); router.get("/:id", controller.getAccount);
+router.post("/", protect, allowRoles("admin"), controller.createAccount);
+router.patch("/:id", protect, allowRoles("admin"), controller.updateAccount);
+router.delete("/:id", protect, allowRoles("admin"), controller.deleteAccount);
+router.post("/:id/buy", protect, controller.buyAccount);
+module.exports = router;
