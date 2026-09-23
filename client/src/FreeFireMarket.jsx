@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Pencil, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { upload } from "@vercel/blob/client";
 
 const base = "";
-const blank = { title: "", description: "", price: "", level: "", rank: "", diamonds: 0, skinCount: 0, loginMethod: "facebook", status: "available" };
+const blank = { title: "", description: "", price: "", level: "", rank: "", diamonds: 0, skinCount: 0, loginMethod: "facebook", imageUrl: "", status: "available" };
 async function api(path, options = {}) {
   const token = localStorage.getItem("saleidgame_token");
   const res = await fetch(`${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -12,12 +13,31 @@ async function api(path, options = {}) {
 }
 
 export default function FreeFireMarket() {
-  const [accounts, setAccounts] = useState([]); const [user, setUser] = useState(null); const [form, setForm] = useState(blank); const [editing, setEditing] = useState(null); const [notice, setNotice] = useState("");
+  const [accounts, setAccounts] = useState([]); const [user, setUser] = useState(null); const [form, setForm] = useState(blank); const [editing, setEditing] = useState(null); const [notice, setNotice] = useState(""); const [uploading, setUploading] = useState(false);
   const message = (value) => { setNotice(value); setTimeout(() => setNotice(""), 3000); };
   const load = async () => { try { setAccounts((await api("/api/freefire-accounts")).accounts); } catch (e) { message(e.message); } };
   const session = async () => { try { setUser((await api("/api/auth/me")).user); } catch { setUser(null); } };
   useEffect(() => { load(); session(); }, []);
   const admin = user?.role === "admin";
+  const uploadImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 4 * 1024 * 1024) {
+      event.target.value = "";
+      return message("Choose a JPEG, PNG, or WebP image no larger than 4 MB");
+    }
+    const token = localStorage.getItem("saleidgame_token");
+    if (!token) return message("Please sign in as an admin before uploading");
+    setUploading(true);
+    try {
+      const blob = await upload(`account-images/${file.name}`, file, {
+        access: "public", handleUploadUrl: "/api/uploads/client", headers: { Authorization: `Bearer ${token}` },
+      });
+      setForm((current) => ({ ...current, imageUrl: blob.url }));
+      message("Image uploaded");
+    } catch (error) { message(error.message || "Image upload failed"); }
+    finally { setUploading(false); event.target.value = ""; }
+  };
   const save = async (e) => { e.preventDefault(); try { const data = { ...form, price: +form.price, level: +form.level, diamonds: +form.diamonds, skinCount: +form.skinCount }; await api(editing ? `/api/freefire-accounts/${editing}` : "/api/freefire-accounts", { method: editing ? "PATCH" : "POST", body: JSON.stringify(data) }); setEditing(null); setForm(blank); message("บันทึกรายการสำเร็จ"); load(); } catch (error) { message(error.message); } };
   const edit = (a) => { setEditing(a._id); setForm({ ...a }); document.getElementById("admin-form")?.scrollIntoView({ behavior: "smooth" }); };
   const remove = async (id) => { if (!confirm("ต้องการลบไอดีนี้หรือไม่?")) return; try { await api(`/api/freefire-accounts/${id}`, { method: "DELETE" }); message("ลบรายการแล้ว"); load(); } catch (e) { message(e.message); } };
