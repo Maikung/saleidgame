@@ -27,7 +27,7 @@ function App() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL ?? ""}/api/tracks`)
+    fetch(`/api/tracks`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => { if (Array.isArray(data) && data.length) setTracks(data); })
       .catch(() => undefined);
@@ -38,7 +38,7 @@ function App() {
   ), [tracks, query, activeCategory]);
 
   const handleDownload = async (track) => {
-    try { await fetch(`${import.meta.env.VITE_API_BASE_URL ?? ""}/api/tracks/${track._id}/download`, { method: "POST" }); } catch { /* demo works offline */ }
+    try { await fetch(`/api/tracks/${track._id}/download`, { method: "POST" }); } catch { /* demo works offline */ }
     setNotice(`เพิ่ม “${track.title}” ลงในรายการแล้ว`);
     window.setTimeout(() => setNotice(""), 2800);
   };

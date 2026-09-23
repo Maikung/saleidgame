@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Pencil, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
-const base = import.meta.env.VITE_API_BASE_URL ?? "";
+const base = "";
 const blank = { title: "", description: "", price: "", level: "", rank: "", diamonds: 0, skinCount: 0, loginMethod: "facebook", status: "available" };
 async function api(path, options = {}) {
   const token = localStorage.getItem("saleidgame_token");
-  const res = await fetch(`${base}${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  const res = await fetch(`${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
   const text = await res.text(); const data = text ? JSON.parse(text) : {};
   if (!res.ok) throw new Error(data.message || `Request failed (HTTP ${res.status})`);
   return data;
