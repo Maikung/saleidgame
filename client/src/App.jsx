@@ -7,7 +7,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [purchaseAfterLogin, setPurchaseAfterLogin] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("saleidgame_token");
@@ -47,13 +46,11 @@ export default function App() {
         <FreeFireMarket
           preview={!user}
           authenticatedUser={user}
-          purchaseAfterLogin={purchaseAfterLogin}
-          onPurchaseHandled={() => setPurchaseAfterLogin(null)}
-          onNeedLogin={(accountId) => { setPurchaseAfterLogin(accountId); setLoginOpen(true); }}
+          onNeedLogin={() => setLoginOpen(true)}
         />
       </main>
       <footer className="border-t border-white/[0.07] px-5 py-7 text-center text-xs text-slate-500">© 2026 SaleIDGame <span className="px-1 text-slate-700">·</span> ตลาดซื้อขายไอดี Free Fire</footer>
-      <AuthTester open={loginOpen} onClose={() => { setLoginOpen(false); setPurchaseAfterLogin(null); }} onAuthSuccess={(authenticatedUser) => { setUser(authenticatedUser); setLoginOpen(false); }} />
+      <AuthTester open={loginOpen} onClose={() => setLoginOpen(false)} onAuthSuccess={(authenticatedUser) => { setUser(authenticatedUser); setLoginOpen(false); }} />
     </div>
   );
 }
