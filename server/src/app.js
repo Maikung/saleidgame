@@ -3,6 +3,7 @@ const cors = require("cors");
 const trackRoutes = require("./routes/track.routes");
 const authRoutes = require("./routes/auth.routes");
 const freeFireRoutes = require("./routes/freefire.routes");
+const orderRoutes = require("./routes/order.routes");
 const uploadRoutes = require("./routes/upload.routes");
 const { notFound, errorHandler } = require("./middlewares/error.middleware");
 
@@ -18,6 +19,7 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/tracks", trackRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/freefire-accounts", freeFireRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api/uploads", uploadRoutes);
 
 // 3. Error handling — must be LAST

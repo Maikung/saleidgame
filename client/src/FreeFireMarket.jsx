@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Gamepad2, ImagePlus, Search, ShoppingCart, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, CreditCard, Gamepad2, ImagePlus, Search, ShoppingCart, Pencil, Plus, Trash2, X } from "lucide-react";
 import { upload } from "@vercel/blob/client";
 
 const blank = { title: "", description: "", price: "", level: "", rank: "", diamonds: 0, skinCount: 0, loginMethod: "facebook", imageUrl: "", status: "available" };
@@ -36,9 +36,20 @@ export default function FreeFireMarket({ preview = false, authenticatedUser = nu
   });
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [paymentOrders, setPaymentOrders] = useState(() => {
+    try {
+      const savedOrders = JSON.parse(localStorage.getItem("saleidgame_payment_orders") || "[]");
+      return Array.isArray(savedOrders) ? savedOrders : [];
+    } catch { return []; }
+  });
+  const [paymentPage, setPaymentPage] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("promptpay");
+  const [payingOrderId, setPayingOrderId] = useState(null);
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   useEffect(() => { setUser(authenticatedUser); }, [authenticatedUser]);
   useEffect(() => { localStorage.setItem("saleidgame_cart", JSON.stringify(cartIds)); }, [cartIds]);
+  useEffect(() => { localStorage.setItem("saleidgame_payment_orders", JSON.stringify(paymentOrders)); }, [paymentOrders]);
   const message = (value) => { setNotice(value); setTimeout(() => setNotice(""), 3000); };
   const load = async () => {
     try {
@@ -51,7 +62,8 @@ export default function FreeFireMarket({ preview = false, authenticatedUser = nu
   useEffect(() => { load(); session(); }, []);
 
   const admin = user?.role === "admin";
-  const matchingAccounts = accounts.filter((account) => `${account.title} ${account.rank} ${account.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const shopAccounts = admin ? accounts : accounts.filter((account) => account.status !== "sold");
+  const matchingAccounts = shopAccounts.filter((account) => `${account.title} ${account.rank} ${account.description}`.toLowerCase().includes(query.trim().toLowerCase()));
   const displayedAccounts = preview ? matchingAccounts.slice(0, 3) : matchingAccounts;
   const cartItems = cartIds.map((id) => accounts.find((account) => account._id === id)).filter(Boolean);
 
@@ -64,22 +76,41 @@ export default function FreeFireMarket({ preview = false, authenticatedUser = nu
     const availableItems = cartItems.filter((account) => account.status === "available");
     if (!availableItems.length) return message("ไม่มีไอดีที่พร้อมซื้อในตะกร้า");
     setCheckingOut(true);
-    let completed = 0;
+    const createdOrders = [];
+    let failure = null;
     for (const account of availableItems) {
       try {
-        await api(`/api/freefire-accounts/${account._id}/buy`, { method: "POST" });
+        const result = await api(`/api/freefire-accounts/${account._id}/buy`, { method: "POST" });
+        createdOrders.push({ order: result.order, account: result.account });
         setCartIds((current) => current.filter((id) => id !== account._id));
-        completed += 1;
       } catch (error) {
-        message(error.message);
+        failure = error.message;
         break;
       }
     }
-    if (completed) {
+    if (createdOrders.length) {
+      setPaymentOrders((current) => [...current, ...createdOrders]);
+      setPaymentPage(true);
+      setPaymentComplete(false);
+      setCartOpen(false);
       load();
-      if (completed === availableItems.length) message(`ส่งคำขอซื้อ ${completed} ไอดีแล้ว`);
     }
+    if (failure) message(failure);
     setCheckingOut(false);
+  };
+
+  const payOrder = async (entry) => {
+    const orderId = entry.order?._id;
+    if (!orderId || payingOrderId) return;
+    setPayingOrderId(orderId);
+    try {
+      await api(`/api/orders/${orderId}/pay`, { method: "POST", body: JSON.stringify({ method: paymentMethod }) });
+      setPaymentOrders((current) => current.filter((item) => item.order?._id !== orderId));
+      setPaymentComplete(true);
+      load();
+      message("ชำระเงินจำลองสำเร็จ ไอดีถูกนำออกจากหน้าร้านแล้ว");
+    } catch (error) { message(error.message); }
+    finally { setPayingOrderId(null); }
   };
 
   const uploadImage = async (event) => {
@@ -114,6 +145,41 @@ export default function FreeFireMarket({ preview = false, authenticatedUser = nu
     try { await api(`/api/freefire-accounts/${id}`, { method: "DELETE" }); message("ลบรายการแล้ว"); load(); }
     catch (error) { message(error.message); }
   };
+
+  if (paymentPage) return (
+    <section className="mx-auto max-w-3xl space-y-5">
+      <button onClick={() => setPaymentPage(false)} className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"><ArrowLeft size={16} /> กลับไปหน้าร้าน</button>
+      <div className="rounded-xl border border-white/10 bg-[#17181c] p-5 sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div><p className="text-xs font-bold tracking-[0.16em] text-[#ff6258]">PAYMENT</p><h1 className="mt-2 text-2xl font-black">ชำระเงิน</h1><p className="mt-1 text-sm text-slate-400">ตรวจสอบไอดีและยอดก่อนดำเนินการ</p></div>
+          <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[11px] font-bold text-amber-200">โหมดทดลอง</span>
+        </div>
+
+        <div className="mt-5 rounded-lg border border-amber-300/20 bg-amber-300/[0.06] p-3 text-xs leading-relaxed text-amber-100">หน้านี้เป็นการจำลองเท่านั้น ไม่มีการตัดเงินจริง เมื่อกดปุ่มชำระเงิน ระบบจะเปลี่ยนคำสั่งซื้อเป็นชำระแล้วและนำไอดีออกจากหน้าร้าน</div>
+
+        {paymentComplete && <div className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.07] p-3 text-sm text-emerald-200"><Check size={17} />จำลองการชำระเงินสำเร็จ</div>}
+
+        {paymentOrders.length > 0 ? <>
+          <h2 className="mt-6 text-sm font-bold">คำสั่งซื้อที่รอชำระ</h2>
+          <div className="mt-3 space-y-2">
+            {paymentOrders.map((entry) => <article key={entry.order?._id} className="flex items-center gap-3 rounded-lg border border-white/[0.08] bg-black/10 p-3">
+              {entry.account?.imageUrl ? <img src={entry.account.imageUrl} alt="" className="size-14 shrink-0 rounded-md object-cover" /> : <div className="grid size-14 shrink-0 place-items-center rounded-md bg-white/[0.05] text-[#ff6258]"><Gamepad2 size={24} /></div>}
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{entry.account?.title || "ไอดี Free Fire"}</p><p className="mt-1 text-xs text-slate-400">{entry.account?.rank} · Lv.{entry.account?.level} · คำสั่งซื้อ #{String(entry.order?._id || "").slice(-6)}</p></div>
+              <b className="whitespace-nowrap text-sm">฿{Number(entry.order?.price ?? entry.account?.price ?? 0).toLocaleString()}</b>
+            </article>)}
+          </div>
+
+          <div className="mt-6"><h2 className="text-sm font-bold">เลือกช่องทาง (จำลอง)</h2><div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {[['promptpay', 'PromptPay'], ['truemoney', 'TrueMoney'], ['bank_transfer', 'โอนธนาคาร']].map(([value, label]) => <button key={value} onClick={() => setPaymentMethod(value)} className={`rounded-lg border px-3 py-3 text-sm font-semibold transition ${paymentMethod === value ? "border-[#f04438] bg-[#f04438]/10 text-white" : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200"}`}><CreditCard size={16} className="mx-auto mb-2" />{label}</button>)}
+          </div></div>
+
+          <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4"><span className="text-sm text-slate-400">ยอดรวม</span><b className="text-xl">฿{paymentOrders.reduce((sum, entry) => sum + Number(entry.order?.price ?? entry.account?.price ?? 0), 0).toLocaleString()}</b></div>
+          <div className="mt-4 space-y-2">{paymentOrders.map((entry) => <button key={entry.order?._id} disabled={Boolean(payingOrderId)} onClick={() => payOrder(entry)} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#f04438] px-4 py-3 text-sm font-bold text-white transition hover:bg-red-400 disabled:opacity-50">{payingOrderId === entry.order?._id ? "กำลังดำเนินการ..." : `ชำระเงินจำลอง ฿${Number(entry.order?.price ?? entry.account?.price ?? 0).toLocaleString()}`}</button>)}</div>
+        </> : <div className="mt-8 rounded-lg border border-white/10 bg-black/10 p-6 text-center"><Check size={28} className="mx-auto text-emerald-400" /><h2 className="mt-3 font-bold">ไม่มีคำสั่งซื้อที่รอชำระแล้ว</h2><p className="mt-1 text-sm text-slate-400">ไอดีที่ชำระแล้วถูกนำออกจากหน้าร้าน</p></div>}
+      </div>
+    </section>
+  );
+
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -123,6 +189,7 @@ export default function FreeFireMarket({ preview = false, authenticatedUser = nu
         </label>
         <div className="flex items-center gap-3">
           {user && <span className="hidden text-xs text-slate-400 sm:inline">บัญชี: {user.username || user.email}</span>}
+          {paymentOrders.length > 0 && <button onClick={() => setPaymentPage(true)} className="rounded-md border border-[#f04438]/30 px-3 py-2.5 text-xs font-semibold text-[#ff8178] transition hover:bg-[#f04438]/10">ชำระเงินต่อ ({paymentOrders.length})</button>}
           <button onClick={() => setCartOpen(true)} className="relative inline-flex items-center gap-2 rounded-md border border-white/10 bg-[#17181c] px-3 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-white/20">
             <ShoppingCart size={16} /> ตะกร้า
             <span className="grid min-w-5 place-items-center rounded-full bg-[#f04438] px-1 text-[11px] font-bold text-white">{cartIds.length}</span>
