@@ -12,7 +12,7 @@ async function api(path, options = {}) {
   if (text) {
     try { data = JSON.parse(text); }
     catch {
-      throw new Error(`API ${path} ตอบกลับเป็นหน้าเว็บแทนข้อมูล (HTTP ${res.status}) — ตรวจสอบว่า Vercel ใช้ Root Directory เป็นโฟลเดอร์โปรเจกต์หลักและ deploy ฟังก์ชัน api/[...path].js แล้ว`);
+      throw new Error(`API ${path} ตอบกลับเป็นหน้าเว็บแทนข้อมูล (HTTP ${res.status}) — ตรวจสอบ route ของ API นี้ในการ deploy`);
     }
   }
   if (!res.ok) throw new Error(data.message || `Request failed (HTTP ${res.status})`);
