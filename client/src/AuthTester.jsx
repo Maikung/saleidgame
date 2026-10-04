@@ -42,7 +42,7 @@ export default function AuthTester({ open, onClose, onAuthSuccess }) {
 
   if (!open) return null;
   return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/25 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="เข้าสู่ระบบและสมัครสมาชิก">
-    <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl sm:p-7">
+    <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl sm:p-7">
       <button onClick={onClose} className="absolute right-4 top-4 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label="ปิด"><X size={18} /></button>
       <p className="text-sm font-semibold text-orange-700">MEMBER ACCESS</p>
       <h2 className="mt-1 text-2xl font-black">เข้าสู่ระบบสมาชิก</h2>
