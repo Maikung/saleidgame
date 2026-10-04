@@ -7,6 +7,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [purchaseAfterLogin, setPurchaseAfterLogin] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("saleidgame_token");
@@ -48,10 +49,16 @@ export default function App() {
 
       <main id="top" className="mx-auto max-w-7xl">
         {user && <div className="mx-5 mt-8 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200 lg:mx-8">เข้าสู่ระบบแล้ว — ขณะนี้คุณกำลังดูรายการทั้งหมด</div>}
-        <FreeFireMarket preview={!user} authenticatedUser={user} onNeedLogin={() => setLoginOpen(true)} />
+        <FreeFireMarket
+          preview={!user}
+          authenticatedUser={user}
+          purchaseAfterLogin={purchaseAfterLogin}
+          onPurchaseHandled={() => setPurchaseAfterLogin(null)}
+          onNeedLogin={(accountId) => { setPurchaseAfterLogin(accountId); setLoginOpen(true); }}
+        />
       </main>
       <footer className="border-t border-white/10 px-5 py-8 text-center text-sm text-slate-500">© 2026 SaleIDGame</footer>
-      <AuthTester open={loginOpen} onClose={() => setLoginOpen(false)} onAuthSuccess={(authenticatedUser) => { setUser(authenticatedUser); setLoginOpen(false); }} />
+      <AuthTester open={loginOpen} onClose={() => { setLoginOpen(false); setPurchaseAfterLogin(null); }} onAuthSuccess={(authenticatedUser) => { setUser(authenticatedUser); setLoginOpen(false); }} />
     </div>
   );
 }
