@@ -8,7 +8,13 @@ async function api(path, options = {}) {
   const token = localStorage.getItem("saleidgame_token");
   const res = await fetch(path, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
+  let data = {};
+  if (text) {
+    try { data = JSON.parse(text); }
+    catch {
+      throw new Error(`API ${path} ตอบกลับเป็นหน้าเว็บแทนข้อมูล (HTTP ${res.status}) — ตรวจสอบว่า Vercel ใช้ Root Directory เป็นโฟลเดอร์โปรเจกต์หลักและ deploy ฟังก์ชัน api/[...path].js แล้ว`);
+    }
+  }
   if (!res.ok) throw new Error(data.message || `Request failed (HTTP ${res.status})`);
   return data;
 }

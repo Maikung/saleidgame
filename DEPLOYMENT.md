@@ -1,6 +1,6 @@
 # Vercel deployment
 
-1. Import the repository into Vercel.
+1. Import the repository into Vercel and set **Root Directory** to the repository root (the folder containing `vercel.json`, `api/`, `server/`, and `client/`). Do not set it to `client/`, or the API function will not be part of the deployment.
 2. In **Storage**, create or connect a Vercel Blob store. Vercel supplies `BLOB_READ_WRITE_TOKEN`.
 3. Add these server-only environment variables in Vercel for each required environment:
    - `MONGO_URI`: MongoDB Atlas `mongodb+srv://` URI
